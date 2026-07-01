@@ -1,0 +1,28 @@
+{
+  "name": "fit2any",
+  "version": "0.1.0",
+  "description": "运动数据文件格式转换工具，支持 FIT / GPX / TCX 互转，数据本地处理",
+  "type": "module",
+  "license": "MIT",
+  "keywords": ["fit", "gpx", "tcx", "garmin", "strava", "sport", "converter", "fitness"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ma452191078/fit2any.git"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.5",
+    "vue-tsc": "^2.2.0"
+  }
+}

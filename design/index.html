@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitConv — 运动数据格式转换</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --bg-soft:#f8fafc;
+    --bg-dark:#0b1220;
+    --ink:#0f172a;
+    --ink-soft:#475569;
+    --ink-mute:#94a3b8;
+    --line:#e2e8f0;
+    --line-soft:#f1f5f9;
+    --brand:#10b981;
+    --brand-d:#059669;
+    --brand-dd:#047857;
+    --accent:#f97316;
+    --radius:16px;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.06);
+    --shadow:0 4px 24px -8px rgba(15,23,42,.12);
+    --shadow-lg:0 24px 60px -20px rgba(15,23,42,.25);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+
+  /* ===== Nav ===== */
+  nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:saturate(180%) blur(14px);
+    -webkit-backdrop-filter:saturate(180%) blur(14px);
+    border-bottom:1px solid var(--line-soft);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.02em}
+  .logo-mark{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--brand),var(--brand-dd));
+    display:grid;place-items:center;color:#fff;
+    box-shadow:0 4px 12px -2px rgba(16,185,129,.5);
+  }
+  .logo-mark svg{width:20px;height:20px}
+  .nav-links{display:flex;align-items:center;gap:32px;list-style:none}
+  .nav-links a{color:var(--ink-soft);text-decoration:none;font-size:15px;font-weight:500;transition:color .2s}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:9px 16px;border-radius:10px;
+    background:var(--ink);color:#fff;text-decoration:none;
+    font-size:14px;font-weight:600;transition:transform .15s,background .2s;
+  }
+  .nav-cta:hover{background:#1e293b;transform:translateY(-1px)}
+  .nav-cta svg{width:16px;height:16px}
+
+  /* ===== Hero ===== */
+  .hero{position:relative;overflow:hidden;padding:72px 0 64px}
+  .hero-bg{
+    position:absolute;inset:0;z-index:0;pointer-events:none;
+  }
+  .hero-bg::before,.hero-bg::after{
+    content:"";position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;
+  }
+  .hero-bg::before{
+    width:480px;height:480px;top:-120px;right:-60px;
+    background:radial-gradient(circle,#10b981,transparent 70%);
+  }
+  .hero-bg::after{
+    width:420px;height:420px;bottom:-160px;left:-80px;
+    background:radial-gradient(circle,#f97316,transparent 70%);opacity:.25;
+  }
+  .hero-grid{
+    position:relative;z-index:1;
+    display:grid;grid-template-columns:1fr 1.05fr;gap:56px;align-items:center;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:6px 14px;border-radius:999px;
+    background:#ecfdf5;border:1px solid #a7f3d0;
+    color:var(--brand-dd);font-size:13px;font-weight:600;
+    margin-bottom:24px;
+  }
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 4px rgba(16,185,129,.2)}
+  .hero h1{
+    font-size:52px;line-height:1.08;letter-spacing:-.03em;
+    font-weight:800;margin-bottom:20px;
+  }
+  .hero h1 .grad{
+    background:linear-gradient(120deg,var(--brand-d),var(--accent));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.lead{font-size:18px;color:var(--ink-soft);margin-bottom:32px;max-width:480px}
+  .hero-badges{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:8px}
+  .hbadge{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-soft);font-weight:500}
+  .hbadge svg{width:18px;height:18px;color:var(--brand)}
+
+  /* ===== Converter Card ===== */
+  .conv-card{
+    background:rgba(255,255,255,.7);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.8);
+    border-radius:24px;padding:8px;
+    box-shadow:var(--shadow-lg);
+  }
+  .conv-inner{
+    background:#fff;border-radius:18px;padding:28px;
+    border:1px solid var(--line-soft);
+  }
+  .conv-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .conv-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .conv-title .pip{width:8px;height:8px;border-radius:50%;background:var(--brand)}
+  .conv-step{font-size:12px;font-weight:600;color:var(--ink-mute);background:var(--bg-soft);padding:4px 10px;border-radius:999px}
+
+  /* Mode tabs */
+  .mode-tabs{display:flex;gap:4px;background:var(--bg-soft);padding:4px;border-radius:11px}
+  .mtab{
+    padding:7px 16px;border:none;background:none;cursor:pointer;
+    font-size:13px;font-weight:600;color:var(--ink-mute);border-radius:8px;
+    transition:all .15s;white-space:nowrap;
+  }
+  .mtab:hover{color:var(--ink-soft)}
+  .mtab.active{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .mode-panel{display:none}
+  .mode-panel.active{display:block}
+
+  /* Batch list */
+  .batch-list{margin-top:18px;display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto}
+  .batch-list::-webkit-scrollbar{width:6px}
+  .batch-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+  .bfile{
+    display:flex;align-items:center;gap:12px;padding:11px 14px;
+    border-radius:11px;background:#fff;border:1px solid var(--line);
+    transition:border-color .15s;
+  }
+  .bfile:hover{border-color:#cbd5e1}
+  .bfile .file-ic{width:34px;height:34px;border-radius:9px;font-size:11px}
+  .bfile .file-meta{flex:1;min-width:0}
+  .bfile .file-name{font-size:13px}
+  .bfile .file-spec{font-size:11px;margin-top:1px}
+  .bfile .bstatus{
+    font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;
+    background:var(--bg-soft);color:var(--ink-mute);
+  }
+  .bfile.done .bstatus{background:#ecfdf5;color:var(--brand-dd)}
+  .bfile .bx{
+    width:26px;height:26px;border-radius:7px;border:none;background:transparent;
+    cursor:pointer;color:var(--ink-mute);display:grid;place-items:center;transition:all .15s;
+  }
+  .bfile .bx:hover{background:#fee2e2;color:#dc2626}
+  .bfile .bx svg{width:14px;height:14px}
+  .batch-count{font-size:12px;color:var(--ink-mute);margin-top:10px;text-align:right}
+  .batch-actions{display:flex;gap:10px;margin-top:16px}
+  .btn-dl-all{
+    flex:1;padding:12px;border-radius:11px;border:1px solid var(--line);background:#fff;
+    cursor:pointer;font-size:14px;font-weight:600;color:var(--ink);
+    display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;
+  }
+  .btn-dl-all:hover{border-color:var(--ink);background:var(--bg-soft)}
+  .btn-dl-all svg{width:16px;height:16px}
+
+  /* Drop zone */
+  .dropzone{
+    border:2px dashed #cbd5e1;border-radius:14px;
+    padding:34px 20px;text-align:center;cursor:pointer;
+    transition:all .2s;background:var(--bg-soft);
+    position:relative;
+  }
+  .dropzone:hover,.dropzone.drag{border-color:var(--brand);background:#ecfdf5}
+  .dz-icon{
+    width:52px;height:52px;margin:0 auto 14px;border-radius:14px;
+    background:linear-gradient(135deg,#ecfdf5,#d1fae5);
+    display:grid;place-items:center;color:var(--brand-d);
+  }
+  .dz-icon svg{width:26px;height:26px}
+  .dz-main{font-size:15px;font-weight:600;margin-bottom:4px}
+  .dz-main .link{color:var(--brand-d);text-decoration:underline;text-underline-offset:2px}
+  .dz-sub{font-size:13px;color:var(--ink-mute)}
+  .dz-formats{display:flex;justify-content:center;gap:8px;margin-top:14px}
+  .dz-tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;letter-spacing:.04em}
+
+  /* uploaded file display */
+  .file-row{
+    display:none;align-items:center;gap:14px;
+    padding:16px;border-radius:14px;background:var(--bg-soft);
+    border:1px solid var(--line);
+  }
+  .file-row.show{display:flex}
+  .file-ic{
+    width:44px;height:44px;border-radius:11px;flex-shrink:0;
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;
+  }
+  .file-meta{flex:1;min-width:0}
+  .file-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .file-spec{font-size:12px;color:var(--ink-mute);margin-top:2px}
+  .file-x{
+    width:30px;height:30px;border-radius:8px;border:none;background:transparent;
+    cursor:pointer;color:var(--ink-mute);display:grid;place-items:center;transition:all .15s;
+  }
+  .file-x:hover{background:#fee2e2;color:#dc2626}
+  .file-x svg{width:16px;height:16px}
+
+  /* Format flow */
+  .flow{margin-top:20px}
+  .flow-label{font-size:12px;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+  .flow-row{display:flex;align-items:center;gap:14px}
+  .flow-side{flex:1}
+  .flow-cap{font-size:11px;font-weight:600;color:var(--ink-mute);margin-bottom:6px}
+  .fmt-options{display:flex;gap:8px}
+  .fmt-opt{
+    flex:1;padding:11px 8px;border-radius:11px;border:2px solid var(--line);
+    background:#fff;cursor:pointer;text-align:center;transition:all .15s;
+    font-size:13px;font-weight:700;
+  }
+  .fmt-opt:hover{border-color:#94a3b8}
+  .fmt-opt.sel{border-color:var(--brand);background:#ecfdf5;color:var(--brand-dd)}
+  .fmt-opt.dis{opacity:.35;cursor:not-allowed;background:var(--bg-soft)}
+  .fmt-opt.dis:hover{border-color:var(--line)}
+  .flow-arrow{
+    width:40px;flex-shrink:0;display:grid;place-items:center;color:var(--ink-mute);
+  }
+  .flow-arrow svg{width:24px;height:24px}
+
+  /* Convert button + result */
+  .conv-action{margin-top:22px}
+  .btn-convert{
+    width:100%;padding:15px;border-radius:13px;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--brand),var(--brand-d));
+    color:#fff;font-size:15px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    box-shadow:0 8px 20px -6px rgba(16,185,129,.5);
+    transition:transform .15s,box-shadow .2s;
+  }
+  .btn-convert:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 26px -6px rgba(16,185,129,.6)}
+  .btn-convert:active{transform:translateY(0)}
+  .btn-convert:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+  .btn-convert svg{width:18px;height:18px}
+
+  .progress-wrap{display:none;margin-top:16px}
+  .progress-wrap.show{display:block}
+  .prog-bar{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+  .prog-fill{height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--accent));transition:width .3s}
+  .prog-text{font-size:12px;color:var(--ink-mute);margin-top:8px;text-align:center}
+
+  .result-box{display:none;margin-top:16px}
+  .result-box.show{display:block}
+  .result-card{
+    padding:18px;border-radius:14px;
+    background:linear-gradient(135deg,#ecfdf5,#f0fdf4);
+    border:1px solid #a7f3d0;
+  }
+  .result-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .result-check{
+    width:36px;height:36px;border-radius:10px;flex-shrink:0;
+    background:var(--brand);color:#fff;display:grid;place-items:center;
+  }
+  .result-check svg{width:20px;height:20px}
+  .result-tx{font-size:14px;font-weight:700}
+  .result-tx small{display:block;font-weight:500;color:var(--ink-soft);font-size:12px;margin-top:1px}
+  .btn-download{
+    width:100%;padding:12px;border-radius:11px;border:none;cursor:pointer;
+    background:var(--ink);color:#fff;font-size:14px;font-weight:600;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:background .2s;
+  }
+  .btn-download:hover{background:#1e293b}
+  .btn-download svg{width:16px;height:16px}
+
+  /* ===== Section base ===== */
+  section.block{padding:88px 0}
+  .sec-head{text-align:center;max-width:620px;margin:0 auto 56px}
+  .sec-eyebrow{font-size:13px;font-weight:700;color:var(--brand-d);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  .sec-head h2{font-size:38px;letter-spacing:-.02em;line-height:1.15;margin-bottom:14px;font-weight:800}
+  .sec-head p{font-size:17px;color:var(--ink-soft)}
+
+  /* ===== Formats ===== */
+  .fmt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .fmt-card{
+    padding:32px;border-radius:20px;border:1px solid var(--line);
+    background:#fff;transition:transform .2s,box-shadow .2s;position:relative;overflow:hidden;
+  }
+  .fmt-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .fmt-card .ring{
+    width:56px;height:56px;border-radius:16px;display:grid;place-items:center;
+    font-weight:800;font-size:15px;letter-spacing:.03em;margin-bottom:20px;
+  }
+  .fmt-card h3{font-size:22px;margin-bottom:6px;font-weight:800}
+  .fmt-card .ext{font-size:13px;color:var(--ink-mute);font-weight:600;margin-bottom:14px}
+  .fmt-card p{font-size:14px;color:var(--ink-soft);margin-bottom:18px}
+  .fmt-feats{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .fmt-feats li{font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:8px}
+  .fmt-feats svg{width:15px;height:15px;color:var(--brand);flex-shrink:0}
+
+  /* ===== Steps ===== */
+  .steps-bg{background:var(--bg-soft)}
+  .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;position:relative}
+  .steps-grid::before{
+    content:"";position:absolute;top:32px;left:18%;right:18%;height:2px;
+    background:repeating-linear-gradient(90deg,var(--line) 0 8px,transparent 8px 16px);
+    z-index:0;
+  }
+  .step{text-align:center;position:relative;z-index:1}
+  .step-ic{
+    width:64px;height:64px;border-radius:18px;margin:0 auto 20px;
+    background:#fff;border:2px solid var(--line);
+    display:grid;place-items:center;color:var(--brand-d);
+    box-shadow:var(--shadow-sm);
+  }
+  .step-ic svg{width:28px;height:28px}
+  .step-num{
+    position:absolute;top:-6px;right:-6px;width:24px;height:24px;border-radius:50%;
+    background:var(--ink);color:#fff;font-size:12px;font-weight:700;
+    display:grid;place-items:center;
+  }
+  .step h3{font-size:19px;font-weight:700;margin-bottom:8px}
+  .step p{font-size:14px;color:var(--ink-soft);max-width:280px;margin:0 auto}
+
+  /* ===== Features ===== */
+  .feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+  .feat{
+    padding:28px;border-radius:18px;border:1px solid var(--line);background:#fff;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .feat:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .feat-ic{
+    width:44px;height:44px;border-radius:12px;margin-bottom:16px;
+    display:grid;place-items:center;
+  }
+  .feat h3{font-size:16px;font-weight:700;margin-bottom:6px}
+  .feat p{font-size:13px;color:var(--ink-soft);line-height:1.55}
+
+  /* ===== FAQ ===== */
+  .faq-bg{background:var(--bg-soft)}
+  .faq-list{max-width:760px;margin:0 auto}
+  .faq-item{
+    background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden;
+    transition:box-shadow .2s;
+  }
+  .faq-item.open{box-shadow:var(--shadow)}
+  .faq-q{
+    width:100%;text-align:left;padding:20px 24px;border:none;background:none;cursor:pointer;
+    font-size:16px;font-weight:600;color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:16px;
+  }
+  .faq-q .chev{width:20px;height:20px;color:var(--ink-mute);transition:transform .2s;flex-shrink:0}
+  .faq-item.open .chev{transform:rotate(180deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .faq-a-inner{padding:0 24px 22px;font-size:14px;color:var(--ink-soft);line-height:1.7}
+
+  /* ===== CTA strip ===== */
+  .cta-strip{
+    margin:0 24px;padding:56px 56px;border-radius:28px;
+    background:linear-gradient(120deg,#0f172a,#1e293b);
+    color:#fff;text-align:center;position:relative;overflow:hidden;
+  }
+  .cta-strip::before{
+    content:"";position:absolute;width:300px;height:300px;border-radius:50%;
+    background:radial-gradient(circle,rgba(16,185,129,.4),transparent 70%);
+    top:-100px;right:-50px;filter:blur(40px);
+  }
+  .cta-strip::after{
+    content:"";position:absolute;width:260px;height:260px;border-radius:50%;
+    background:radial-gradient(circle,rgba(249,115,22,.3),transparent 70%);
+    bottom:-100px;left:-30px;filter:blur(40px);
+  }
+  .cta-strip h2{font-size:34px;font-weight:800;margin-bottom:12px;position:relative}
+  .cta-strip p{color:#94a3b8;margin-bottom:28px;position:relative}
+  .cta-strip .btn-convert{max-width:260px;margin:0 auto;position:relative}
+
+  /* ===== Footer ===== */
+  footer{padding:56px 0 40px;border-top:1px solid var(--line);margin-top:80px}
+  .foot-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
+  .foot-brand p{font-size:14px;color:var(--ink-soft);margin-top:14px;max-width:280px}
+  .foot-col h4{font-size:13px;font-weight:700;margin-bottom:14px;color:var(--ink)}
+  .foot-col a{display:block;font-size:14px;color:var(--ink-soft);text-decoration:none;margin-bottom:10px;transition:color .15s}
+  .foot-col a:hover{color:var(--brand-d)}
+  .foot-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:24px;border-top:1px solid var(--line-soft);font-size:13px;color:var(--ink-mute)}
+
+  @media(max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:40px}
+    .hero h1{font-size:38px}
+    .fmt-grid,.steps-grid,.feat-grid{grid-template-columns:1fr}
+    .steps-grid::before{display:none}
+    .foot-grid{grid-template-columns:1fr 1fr}
+    .cta-strip{padding:40px 28px}
+    .cta-strip h2{font-size:26px}
+    .nav-links{display:none}
+    .flow-row{flex-direction:column}
+    .flow-arrow{transform:rotate(90deg);margin:4px 0}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <div class="wrap nav-inner">
+    <div class="logo">
+      <span class="logo-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+      </span>
+      FitConv
+    </div>
+    <ul class="nav-links">
+      <li><a href="#formats">支持格式</a></li>
+      <li><a href="#how">使用流程</a></li>
+      <li><a href="#features">产品特性</a></li>
+      <li><a href="#faq">常见问题</a></li>
+    </ul>
+    <a href="#" class="nav-cta">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.7-5.5 6 .4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<header class="hero">
+  <div class="hero-bg"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> 浏览器本地处理 · 数据不上传</span>
+      <h1>运动数据<br><span class="grad">格式自由转换</span></h1>
+      <p class="lead">上传 FIT、GPX 或 TCX 运动记录文件，一键转换为其他格式。支持三种格式之间任意互转，全程本地处理，安全私密。</p>
+      <div class="hero-badges">
+        <span class="hbadge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 数据零上传</span>
+        <span class="hbadge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 永久免费</span>
+        <span class="hbadge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> 无需注册</span>
+      </div>
+    </div>
+
+    <!-- Converter Card -->
+    <div class="conv-card">
+      <div class="conv-inner">
+        <div class="conv-head">
+          <div class="mode-tabs">
+            <button class="mtab active" data-mode="single">单文件转换</button>
+            <button class="mtab" data-mode="batch">批量转换</button>
+          </div>
+          <span class="conv-step" id="stepLabel">第 1 步 · 上传文件</span>
+        </div>
+
+        <!-- ===== Single mode ===== -->
+        <div class="mode-panel active" id="singleMode">
+
+        <!-- Drop zone -->
+        <div class="dropzone" id="dropzone">
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="dz-main">拖拽文件到此处，或 <span class="link">点击选择</span></div>
+          <div class="dz-sub">支持单个文件，最大 50MB</div>
+          <div class="dz-formats">
+            <span class="dz-tag" style="background:#fef3c7;color:#b45309">FIT</span>
+            <span class="dz-tag" style="background:#dbeafe;color:#1d4ed8">GPX</span>
+            <span class="dz-tag" style="background:#ede9fe;color:#6d28d9">TCX</span>
+          </div>
+          <input type="file" id="fileInput" accept=".fit,.gpx,.tcx" hidden>
+        </div>
+
+        <!-- Uploaded file -->
+        <div class="file-row" id="fileRow">
+          <div class="file-ic" id="fileIc">FIT</div>
+          <div class="file-meta">
+            <div class="file-name" id="fileName">morning_run.fit</div>
+            <div class="file-spec" id="fileSpec">FIT · 248 KB · 跑步 · 8.2 km</div>
+          </div>
+          <button class="file-x" id="fileX" title="移除">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- Format flow -->
+        <div class="flow">
+          <div class="flow-label">选择目标格式</div>
+          <div class="flow-row">
+            <div class="flow-side">
+              <div class="flow-cap">源格式</div>
+              <div class="fmt-options">
+                <div class="fmt-opt dis" id="srcFit">FIT</div>
+                <div class="fmt-opt dis" id="srcGpx">GPX</div>
+                <div class="fmt-opt dis" id="srcTcx">TCX</div>
+              </div>
+            </div>
+            <div class="flow-arrow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div class="flow-side">
+              <div class="flow-cap">目标格式</div>
+              <div class="fmt-options">
+                <div class="fmt-opt" data-tgt="FIT">FIT</div>
+                <div class="fmt-opt" data-tgt="GPX">GPX</div>
+                <div class="fmt-opt" data-tgt="TCX">TCX</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Convert button -->
+        <div class="conv-action">
+          <button class="btn-convert" id="btnConvert" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            开始转换
+          </button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-wrap" id="progWrap">
+          <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+          <div class="prog-text" id="progText">正在解析文件…</div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-box" id="resultBox">
+          <div class="result-card">
+            <div class="result-top">
+              <div class="result-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="result-tx">转换完成<small id="resultMeta">morning_run.gpx · 186 KB</small></div>
+            </div>
+            <button class="btn-download">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              下载文件
+            </button>
+          </div>
+        </div>
+        </div><!-- /singleMode -->
+
+        <!-- ===== Batch mode ===== -->
+        <div class="mode-panel" id="batchMode">
+          <!-- Batch drop zone -->
+          <div class="dropzone" id="batchDropzone">
+            <div class="dz-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
+            <div class="dz-main">拖拽多个文件到此处，或 <span class="link">点击添加</span></div>
+            <div class="dz-sub">支持 FIT / GPX / TCX，可同时添加多个</div>
+            <div class="dz-formats">
+              <span class="dz-tag" style="background:#fef3c7;color:#b45309">FIT</span>
+              <span class="dz-tag" style="background:#dbeafe;color:#1d4ed8">GPX</span>
+              <span class="dz-tag" style="background:#ede9fe;color:#6d28d9">TCX</span>
+            </div>
+            <input type="file" id="batchInput" accept=".fit,.gpx,.tcx" multiple hidden>
+          </div>
+
+          <!-- Batch file list -->
+          <div class="batch-list" id="batchList"></div>
+          <div class="batch-count" id="batchCount" style="display:none">已添加 0 个文件</div>
+
+          <!-- Batch target format -->
+          <div class="flow" id="batchFlow" style="display:none">
+            <div class="flow-label">统一目标格式</div>
+            <div class="fmt-options" style="display:flex;gap:8px">
+              <div class="fmt-opt" data-btgt="FIT">FIT</div>
+              <div class="fmt-opt" data-btgt="GPX">GPX</div>
+              <div class="fmt-opt" data-btgt="TCX">TCX</div>
+            </div>
+            <div style="font-size:12px;color:var(--ink-mute);margin-top:8px">所有文件将统一转换为此格式。如需不同格式，请使用单文件模式。</div>
+          </div>
+
+          <!-- Batch convert button -->
+          <div class="conv-action" id="batchAction" style="display:none">
+            <button class="btn-convert" id="btnBatchConvert" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+              <span id="batchBtnLabel">批量转换</span>
+            </button>
+          </div>
+
+          <!-- Batch progress -->
+          <div class="progress-wrap" id="batchProgWrap">
+            <div class="prog-bar"><div class="prog-fill" id="batchProgFill"></div></div>
+            <div class="prog-text" id="batchProgText">正在转换…</div>
+          </div>
+
+          <!-- Batch result -->
+          <div class="result-box" id="batchResultBox">
+            <div class="result-card">
+              <div class="result-top">
+                <div class="result-check">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <div class="result-tx">批量转换完成<small id="batchResultMeta">3/3 个文件已转换</small></div>
+              </div>
+              <div class="batch-actions">
+                <button class="btn-dl-all" id="btnDlAll">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  打包下载全部 (ZIP)
+                </button>
+              </div>
+            </div>
+          </div>
+        </div><!-- /batchMode -->
+
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ===== FORMATS ===== -->
+<section class="block" id="formats">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">支持格式</div>
+      <h2>三种主流运动数据格式</h2>
+      <p>覆盖 Garmin、Strava、佳明等主流运动设备与平台，三种格式之间任意互转</p>
+    </div>
+    <div class="fmt-grid">
+      <div class="fmt-card">
+        <div class="ring" style="background:#fef3c7;color:#b45309">FIT</div>
+        <h3>Flexible &amp; Interoperable</h3>
+        <div class="ext">.fit · 二进制格式</div>
+        <p>Garmin 专有的高效二进制格式，记录最为丰富的运动数据：轨迹、心率、步频、功率、踏频等。文件体积小，但需专用工具解析。</p>
+        <ul class="fmt-feats">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 数据维度最全</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 文件体积小</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Garmin 设备原生</li>
+        </ul>
+      </div>
+      <div class="fmt-card">
+        <div class="ring" style="background:#dbeafe;color:#1d4ed8">GPX</div>
+        <h3>GPS Exchange Format</h3>
+        <div class="ext">.gpx · XML 文本格式</div>
+        <p>通用的 GPS 轨迹交换格式，基于 XML，可读性强、兼容性最好。记录航点、轨迹与时间戳，几乎所有地图与运动平台都支持导入。</p>
+        <ul class="fmt-feats">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 通用性最强</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 纯文本可读</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 跨平台兼容</li>
+        </ul>
+      </div>
+      <div class="fmt-card">
+        <div class="ring" style="background:#ede9fe;color:#6d28d9">TCX</div>
+        <h3>Training Center XML</h3>
+        <div class="ext">.tcx · XML 文本格式</div>
+        <p>Garmin Training Center 的 XML 格式，在轨迹基础上增加心率、配速、圈数等训练数据。介于 FIT 与 GPX 之间，适合运动分析。</p>
+        <ul class="fmt-feats">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> 含训练数据</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> XML 可读</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Strava 友好</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="block steps-bg" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">使用流程</div>
+      <h2>三步完成转换</h2>
+      <p>无需安装、无需注册，打开即用</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-ic">
+          <div class="step-num">1</div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <h3>上传运动文件</h3>
+        <p>拖拽或点击上传你的 FIT / GPX / TCX 运动记录文件，系统自动识别源格式</p>
+      </div>
+      <div class="step">
+        <div class="step-ic">
+          <div class="step-num">2</div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </div>
+        <h3>选择目标格式</h3>
+        <p>从剩余两种格式中选择你需要的输出格式，点击开始转换</p>
+      </div>
+      <div class="step">
+        <div class="step-ic">
+          <div class="step-num">3</div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </div>
+        <h3>下载转换结果</h3>
+        <p>转换在本地瞬间完成，直接下载转换后的文件，数据全程不离开你的设备</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section class="block" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">产品特性</div>
+      <h2>为什么选择 FitConv</h2>
+      <p>专注做好一件事：安全、快速、无损的运动数据格式转换</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-ic" style="background:#ecfdf5;color:#059669">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>隐私优先</h3>
+        <p>所有转换在浏览器本地完成，文件永不上传服务器，数据完全由你掌控</p>
+      </div>
+      <div class="feat">
+        <div class="feat-ic" style="background:#fff7ed;color:#ea580c">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <h3>极速转换</h3>
+        <p>基于 WebAssembly 解析引擎，大文件也能在秒级完成转换，无需等待</p>
+      </div>
+      <div class="feat">
+        <div class="feat-ic" style="background:#eff6ff;color:#2563eb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <h3>数据无损</h3>
+        <p>最大程度保留原始文件中的轨迹、心率、配速等运动数据，转换不丢信息</p>
+      </div>
+      <div class="feat">
+        <div class="feat-ic" style="background:#f5f3ff;color:#7c3aed">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <h3>永久免费</h3>
+        <p>开源项目，无广告无注册，不限制转换次数，任何人都可以自由使用</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section class="block faq-bg" id="faq">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-eyebrow">常见问题</div>
+      <h2>你可能想知道的</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item open">
+        <button class="faq-q">我的运动数据会上传到服务器吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">不会。FitConv 的所有文件解析与格式转换完全在你的浏览器本地完成，使用 WebAssembly 技术。你的运动文件永远不会被上传到任何服务器，关闭页面后数据即刻清除，最大程度保护隐私。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">三种格式之间都能互转吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">是的。FIT、GPX、TCX 三种格式支持任意方向互转，共 6 种转换组合。不过需要注意，GPX 格式本身不包含心率、功率等训练数据，从 GPX 转出时这些字段无法凭空生成，仅保留轨迹与时间信息。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">转换会丢失数据吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">我们尽可能做到无损转换，但受目标格式本身的字段限制，部分数据可能无法保留。例如 FIT 包含的踏频、功率等高级数据，转换为 GPX 时会丢失（GPX 仅支持轨迹点）。转换为 TCX 则可保留心率、配速、圈数等训练数据。建议根据用途选择合适的目标格式。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">支持哪些类型的运动记录？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">支持跑步、骑行、游泳、徒步、铁人三项等所有主流运动类型。只要你的设备能导出 FIT / GPX / TCX 格式，FitConv 都能处理。包括 Garmin、佳明、颂拓、Wahoo 等主流运动手表与码表导出的文件。</div></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">有文件大小限制吗？<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="faq-a"><div class="faq-a-inner">单文件最大支持 50MB，足以覆盖绝大多数运动记录（一次马拉松的 FIT 文件通常在 1-5MB 之间）。由于处理在本地进行，文件越大转换耗时越长，但一般在数秒内即可完成。</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section style="padding:0 0 88px">
+  <div class="wrap" style="padding:0">
+    <div class="cta-strip">
+      <h2>现在就开始转换你的运动数据</h2>
+      <p>免费 · 隐私 · 无需注册，打开即用</p>
+      <button class="btn-convert" onclick="document.querySelector('.dropzone').scrollIntoView({behavior:'smooth',block:'center'})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        上传文件
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">
+          <span class="logo-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>
+          </span>
+          FitConv
+        </div>
+        <p>开源的运动数据格式转换工具，专注隐私与效率。让运动数据在不同平台间自由流动。</p>
+      </div>
+      <div class="foot-col">
+        <h4>产品</h4>
+        <a href="#formats">支持格式</a>
+        <a href="#how">使用流程</a>
+        <a href="#features">产品特性</a>
+      </div>
+      <div class="foot-col">
+        <h4>资源</h4>
+        <a href="#faq">常见问题</a>
+        <a href="#">使用文档</a>
+        <a href="#">格式说明</a>
+      </div>
+      <div class="foot-col">
+        <h4>项目</h4>
+        <a href="#">GitHub</a>
+        <a href="#">问题反馈</a>
+        <a href="#">开源协议</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 FitConv · MIT License</span>
+      <span>数据本地处理 · 永不上传</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const fmtMeta = {
+    FIT:{bg:'#fef3c7',color:'#b45309'},
+    GPX:{bg:'#dbeafe',color:'#1d4ed8'},
+    TCX:{bg:'#ede9fe',color:'#6d28d9'}
+  };
+  const samples = {
+    FIT:['morning_run.fit','weekend_ride.fit','pool_swim.fit'],
+    GPX:['hiking_trail.gpx','city_loop.gpx'],
+    TCX:['interval_run.tcx','long_ride.tcx']
+  };
+  const activities = ['跑步','骑行','游泳','徒步','越野跑'];
+  const sizes = ['186 KB','248 KB','412 KB','1.2 MB','2.8 MB'];
+
+  const dz = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const fileRow = document.getElementById('fileRow');
+  const fileIc = document.getElementById('fileIc');
+  const fileName = document.getElementById('fileName');
+  const fileSpec = document.getElementById('fileSpec');
+  const fileX = document.getElementById('fileX');
+  const btnConvert = document.getElementById('btnConvert');
+  const stepLabel = document.getElementById('stepLabel');
+  const progWrap = document.getElementById('progWrap');
+  const progFill = document.getElementById('progFill');
+  const progText = document.getElementById('progText');
+  const resultBox = document.getElementById('resultBox');
+  const resultMeta = document.getElementById('resultMeta');
+
+  let srcFmt = null;
+  let tgtFmt = null;
+  let baseName = '';
+
+  function detectFmt(name){
+    const ext = name.split('.').pop().toUpperCase();
+    return ['FIT','GPX','TCX'].includes(ext) ? ext : null;
+  }
+
+  function setSrc(fmt){
+    srcFmt = fmt;
+    ['Fit','Gpx','Tcx'].forEach(k=>{
+      const el = document.getElementById('src'+k);
+      const f = k.toUpperCase();
+      if(f===fmt){el.classList.add('sel');el.classList.remove('dis');}
+      else{el.classList.remove('sel');el.classList.add('dis');}
+    });
+    // disable same target
+    document.querySelectorAll('[data-tgt]').forEach(o=>{
+      if(o.dataset.tgt===fmt){o.classList.add('dis');o.classList.remove('sel');}
+      else{o.classList.remove('dis');}
+    });
+    // reset target if it was the disabled one
+    if(tgtFmt===fmt){tgtFmt=null;document.querySelectorAll('[data-tgt]').forEach(o=>o.classList.remove('sel'));}
+    updateBtn();
+  }
+
+  function updateBtn(){
+    btnConvert.disabled = !(srcFmt && tgtFmt);
+    if(!srcFmt) stepLabel.textContent='第 1 步 · 上传文件';
+    else if(!tgtFmt) stepLabel.textContent='第 2 步 · 选择目标格式';
+    else stepLabel.textContent='第 3 步 · 开始转换';
+  }
+
+  function showFile(name,fmt){
+    baseName = name.replace(/\.[^.]+$/,'');
+    fileName.textContent = name;
+    const act = activities[Math.floor(Math.random()*activities.length)];
+    const sz = sizes[Math.floor(Math.random()*sizes.length)];
+    const dist = (Math.random()*40+3).toFixed(1);
+    fileSpec.textContent = `${fmt} · ${sz} · ${act} · ${dist} km`;
+    fileIc.textContent = fmt;
+    fileIc.style.background = fmtMeta[fmt].bg;
+    fileIc.style.color = fmtMeta[fmt].color;
+    fileRow.classList.add('show');
+    dz.style.display='none';
+    setSrc(fmt);
+  }
+
+  function reset(){
+    fileRow.classList.remove('show');
+    dz.style.display='block';
+    srcFmt=null;tgtFmt=null;baseName='';
+    document.querySelectorAll('[data-tgt]').forEach(o=>{o.classList.remove('sel');o.classList.remove('dis');});
+    ['Fit','Gpx','Tcx'].forEach(k=>{const el=document.getElementById('src'+k);el.classList.remove('sel');el.classList.add('dis');});
+    progWrap.classList.remove('show');
+    resultBox.classList.remove('show');
+    progFill.style.width='0';
+    btnConvert.disabled=true;
+    fileInput.value='';
+    updateBtn();
+  }
+
+  // Demo: load a sample file when clicking dropzone (simulated)
+  dz.addEventListener('click',()=>{
+    // For demo, pick a random sample instead of real file picker
+    const fmts = ['FIT','GPX','TCX'];
+    const f = fmts[Math.floor(Math.random()*3)];
+    const arr = samples[f];
+    const name = arr[Math.floor(Math.random()*arr.length)];
+    showFile(name,f);
+  });
+  fileInput.addEventListener('change',e=>{
+    const f = e.target.files[0];
+    if(f){const fmt=detectFmt(f.name);if(fmt) showFile(f.name,fmt);}
+  });
+
+  // drag over
+  ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+  dz.addEventListener('drop',e=>{
+    const f = e.dataTransfer.files[0];
+    if(f){const fmt=detectFmt(f.name);if(fmt) showFile(f.name,fmt);}
+  });
+
+  fileX.addEventListener('click',reset);
+
+  // target selection
+  document.querySelectorAll('[data-tgt]').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      if(opt.classList.contains('dis'))return;
+      document.querySelectorAll('[data-tgt]').forEach(o=>o.classList.remove('sel'));
+      opt.classList.add('sel');
+      tgtFmt = opt.dataset.tgt;
+      updateBtn();
+    });
+  });
+
+  // convert simulation
+  btnConvert.addEventListener('click',()=>{
+    if(!srcFmt||!tgtFmt)return;
+    btnConvert.disabled=true;
+    progWrap.classList.add('show');
+    resultBox.classList.remove('show');
+    let p = 0;
+    const stages = ['正在解析文件…','正在提取数据…','正在生成 '+tgtFmt+'…','正在校验完整性…'];
+    const timer = setInterval(()=>{
+      p += 6+Math.random()*10;
+      if(p>100)p=100;
+      progFill.style.width = p+'%';
+      progText.textContent = stages[Math.min(Math.floor(p/25),3)];
+      if(p>=100){
+        clearInterval(timer);
+        setTimeout(()=>{
+          progWrap.classList.remove('show');
+          const outSz = sizes[Math.floor(Math.random()*sizes.length)];
+          resultMeta.textContent = `${baseName}.${tgtFmt.toLowerCase()} · ${outSz}`;
+          resultBox.classList.add('show');
+          stepLabel.textContent='完成 · 可下载';
+        },300);
+      }
+    },180);
+  });
+
+  // ===== Mode switching =====
+  const mtabs = document.querySelectorAll('.mtab');
+  const singleModeEl = document.getElementById('singleMode');
+  const batchModeEl = document.getElementById('batchMode');
+  mtabs.forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      mtabs.forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      if(tab.dataset.mode==='single'){
+        singleModeEl.classList.add('active');
+        batchModeEl.classList.remove('active');
+        stepLabel.textContent='第 1 步 · 上传文件';
+      }else{
+        batchModeEl.classList.add('active');
+        singleModeEl.classList.remove('active');
+        stepLabel.textContent = batchFiles.length?'批量模式 · 已添加 '+batchFiles.length+' 个文件':'批量模式 · 添加文件';
+      }
+    });
+  });
+
+  // ===== Batch mode =====
+  const batchDz = document.getElementById('batchDropzone');
+  const batchInputEl = document.getElementById('batchInput');
+  const batchList = document.getElementById('batchList');
+  const batchCountEl = document.getElementById('batchCount');
+  const batchFlow = document.getElementById('batchFlow');
+  const batchAction = document.getElementById('batchAction');
+  const btnBatchConvert = document.getElementById('btnBatchConvert');
+  const batchBtnLabel = document.getElementById('batchBtnLabel');
+  const batchProgWrap = document.getElementById('batchProgWrap');
+  const batchProgFill = document.getElementById('batchProgFill');
+  const batchProgText = document.getElementById('batchProgText');
+  const batchResultBox = document.getElementById('batchResultBox');
+  const batchResultMeta = document.getElementById('batchResultMeta');
+  const btnDlAll = document.getElementById('btnDlAll');
+
+  let batchFiles = [];
+  let batchTgt = null;
+  let batchIdSeq = 0;
+
+  function addBatchFiles(fileList){
+    Array.from(fileList).forEach(f=>{
+      const fmt = detectFmt(f.name);
+      if(!fmt) return;
+      batchFiles.push({id:++batchIdSeq,file:f,fmt:fmt,name:f.name,done:false});
+    });
+    renderBatch();
+  }
+
+  function addSampleBatch(){
+    const fmts=['FIT','GPX','TCX'];
+    const n = 2+Math.floor(Math.random()*3);
+    const used=new Set();
+    for(let i=0;i<n;i++){
+      const f=fmts[Math.floor(Math.random()*3)];
+      const arr=samples[f];
+      let name=arr[Math.floor(Math.random()*arr.length)];
+      if(used.has(name)){name=name.replace('.',(i+1)+'.');}
+      used.add(name);
+      batchFiles.push({id:++batchIdSeq,file:null,fmt:f,name:name,done:false});
+    }
+    renderBatch();
+  }
+
+  function renderBatch(){
+    batchList.innerHTML='';
+    if(!batchFiles.length){
+      batchCountEl.style.display='none';
+      batchFlow.style.display='none';
+      batchAction.style.display='none';
+      batchResultBox.classList.remove('show');
+      batchProgWrap.classList.remove('show');
+      batchTgt=null;
+      if(document.querySelector('.mtab[data-mode="batch"]').classList.contains('active')){
+        stepLabel.textContent='批量模式 · 添加文件';
+      }
+      return;
+    }
+    batchFiles.forEach(item=>{
+      const act=activities[Math.floor(Math.random()*activities.length)];
+      const sz=sizes[Math.floor(Math.random()*sizes.length)];
+      const row=document.createElement('div');
+      row.className='bfile'+(item.done?' done':'');
+      row.dataset.id=item.id;
+      row.innerHTML='<div class="file-ic" style="background:'+fmtMeta[item.fmt].bg+';color:'+fmtMeta[item.fmt].color+'">'+item.fmt+'</div>'+
+        '<div class="file-meta"><div class="file-name">'+item.name+'</div><div class="file-spec">'+item.fmt+' · '+sz+' · '+act+'</div></div>'+
+        '<span class="bstatus">'+(item.done?'✓ 已转换':'待转换')+'</span>'+
+        '<button class="bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>';
+      row.querySelector('.bx').addEventListener('click',()=>{
+        batchFiles=batchFiles.filter(x=>x.id!==item.id);
+        renderBatch();
+      });
+      batchList.appendChild(row);
+    });
+    batchCountEl.style.display='block';
+    batchCountEl.textContent='已添加 '+batchFiles.length+' 个文件';
+    batchFlow.style.display='block';
+    batchAction.style.display='block';
+    batchBtnLabel.textContent='批量转换 ('+batchFiles.length+')';
+    document.querySelectorAll('[data-btgt]').forEach(o=>{
+      o.classList.toggle('sel',o.dataset.btgt===batchTgt);
+    });
+    updateBatchBtn();
+  }
+
+  function updateBatchBtn(){
+    btnBatchConvert.disabled = !(batchFiles.length && batchTgt);
+    if(!batchFiles.length) stepLabel.textContent='批量模式 · 添加文件';
+    else if(!batchTgt) stepLabel.textContent='批量模式 · 选择目标格式';
+    else stepLabel.textContent='批量模式 · 开始转换';
+  }
+
+  batchDz.addEventListener('click',()=>{addSampleBatch();});
+  batchInputEl.addEventListener('change',e=>{addBatchFiles(e.target.files);});
+  ['dragenter','dragover'].forEach(ev=>batchDz.addEventListener(ev,e=>{e.preventDefault();batchDz.classList.add('drag');}));
+  ['dragleave','drop'].forEach(ev=>batchDz.addEventListener(ev,e=>{e.preventDefault();batchDz.classList.remove('drag');}));
+  batchDz.addEventListener('drop',e=>{addBatchFiles(e.dataTransfer.files);});
+
+  document.querySelectorAll('[data-btgt]').forEach(opt=>{
+    opt.addEventListener('click',()=>{
+      document.querySelectorAll('[data-btgt]').forEach(o=>o.classList.remove('sel'));
+      opt.classList.add('sel');
+      batchTgt=opt.dataset.btgt;
+      updateBatchBtn();
+    });
+  });
+
+  btnBatchConvert.addEventListener('click',()=>{
+    if(!batchFiles.length||!batchTgt)return;
+    btnBatchConvert.disabled=true;
+    batchProgWrap.classList.add('show');
+    batchResultBox.classList.remove('show');
+    batchFiles.forEach(f=>f.done=false);
+    let done=0;
+    const total=batchFiles.length;
+    batchProgText.textContent='正在转换 1/'+total+'…';
+    batchProgFill.style.width='0';
+    const timer=setInterval(()=>{
+      const item=batchFiles[done];
+      if(item){
+        item.done=true;
+        const row=batchList.querySelector('[data-id="'+item.id+'"]');
+        if(row){row.classList.add('done');row.querySelector('.bstatus').textContent='✓ 已转换';}
+      }
+      done++;
+      const pct=Math.round(done/total*100);
+      batchProgFill.style.width=pct+'%';
+      batchProgText.textContent='正在转换 '+done+'/'+total+'…';
+      if(done>=total){
+        clearInterval(timer);
+        setTimeout(()=>{
+          batchProgWrap.classList.remove('show');
+          batchResultMeta.textContent=total+'/'+total+' 个文件已转换为 '+batchTgt;
+          batchResultBox.classList.add('show');
+          stepLabel.textContent='批量完成 · 可下载';
+          btnBatchConvert.disabled=false;
+        },300);
+      }
+    },500);
+  });
+
+  btnDlAll.addEventListener('click',()=>{
+    alert('演示：将打包下载 '+batchFiles.length+' 个转换后的 '+batchTgt+' 文件 (ZIP)');
+  });
+
+  // FAQ accordion
+  document.querySelectorAll('.faq-q').forEach(q=>{
+    q.addEventListener('click',()=>{
+      const item = q.parentElement;
+      const ans = item.querySelector('.faq-a');
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i=>{
+        i.classList.remove('open');
+        i.querySelector('.faq-a').style.maxHeight=null;
+      });
+      if(!isOpen){
+        item.classList.add('open');
+        ans.style.maxHeight = ans.scrollHeight+'px';
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
