@@ -1,6 +1,6 @@
 {
   "name": "fit2any",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "运动数据文件格式转换工具，支持 FIT / GPX / TCX 互转，数据本地处理",
   "type": "module",
   "license": "MIT",
