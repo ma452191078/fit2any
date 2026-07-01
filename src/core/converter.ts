@@ -32,17 +32,17 @@ export function detectFormat(filename: string): FileFormat | null {
 }
 
 /**
- * 执行单次格式转换
+ * 执行单次格式转换（异步）
  * @param filename 源文件名
  * @param data 源文件内容
  * @param targetFormat 目标格式
  * @returns 转换结果
  */
-export function convert(
+export async function convert(
   filename: string,
   data: ArrayBuffer | string,
   targetFormat: FileFormat,
-): ConvertResult {
+): Promise<ConvertResult> {
   const sourceFormat = detectFormat(filename)
   if (!sourceFormat) {
     throw new Error(`不支持的文件格式：${filename}`)
@@ -54,7 +54,7 @@ export function convert(
   const parser = parsers[sourceFormat]
   const writer = writers[targetFormat]
 
-  const activity = parser.parse(data)
+  const activity = await parser.parse(data)
   const blob = writer.write(activity)
 
   const baseName = filename.replace(/\.[^.]+$/, '')

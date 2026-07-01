@@ -94,10 +94,10 @@ export interface ConvertResult {
   size: number
 }
 
-/** 解析器接口：原始数据 → UnifiedActivity */
+/** 解析器接口：原始数据 → UnifiedActivity（异步，FIT 需回调） */
 export interface Parser {
   format: FileFormat
-  parse(data: ArrayBuffer | string): UnifiedActivity
+  parse(data: ArrayBuffer | string): Promise<UnifiedActivity>
 }
 
 /** 生成器接口：UnifiedActivity → 目标格式 */
